@@ -14,23 +14,28 @@ DATASETS_PATH = Path("./datasets")
 IMAGENET_MEAN = tensor([.485, .456, .406])
 IMAGENET_STD = tensor([.229, .224, .225])
 
+# def mvtec_classes():
+#     return [
+#         "bottle",
+#         "cable",
+#         "capsule",
+#         "carpet",
+#         "grid",
+#         "hazelnut",
+#         "leather",
+#         "metal_nut",
+#         "pill",
+#         "screw",
+#         "tile",
+#         "toothbrush",
+#         "transistor",
+#         "wood",
+#         "zipper",
+#     ]
+
 def mvtec_classes():
     return [
         "bottle",
-        "cable",
-        "capsule",
-        "carpet",
-        "grid",
-        "hazelnut",
-        "leather",
-        "metal_nut",
-        "pill",
-        "screw",
-        "tile",
-        "toothbrush",
-        "transistor",
-        "wood",
-        "zipper",
     ]
 
 class MVTecDataset:
@@ -93,11 +98,11 @@ class MVTecTestDataset(ImageFolder):
         )
         self.cls = cls
         self.size = size
-            
+
     def __getitem__(self, index):
         path, _ = self.samples[index]
         sample = self.loader(path)
-        
+
         if "good" in path:
             target = Image.new('L', (self.size, self.size))
             sample_class = 0
@@ -116,7 +121,7 @@ class MVTecTestDataset(ImageFolder):
 
 class StreamingDataset:
     """This dataset is made specifically for the streamlit app."""
-    def __init__(self, size: int = 224):
+    def __init__(self, size: int = 256): # __init__(self, size: int = 224):
         self.size = size
         self.transform=transforms.Compose([
                 transforms.Resize(256, interpolation=transforms.InterpolationMode.BICUBIC),
@@ -125,7 +130,7 @@ class StreamingDataset:
                 transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
             ])
         self.samples = []
-    
+
     def add_pil_image(self, image : Image):
         image = image.convert('RGB')
         self.samples.append(image)

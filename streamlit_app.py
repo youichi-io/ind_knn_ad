@@ -9,6 +9,7 @@ from time import sleep
 from PIL import Image
 import io
 import numpy as np
+import cv2
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
@@ -41,11 +42,14 @@ def pred_to_img(x, range):
 
 def show_pred(sample, score, fmap, range):
     sample_img = tensor_to_img(sample, normalize=True)
-    fmap_img = pred_to_img(fmap, range)
+    height, width = sample_img.shape[:2]
+    fmap_img_tmp = pred_to_img(fmap, range)
+    fmap_img_tmp = cv2.resize(fmap_img_tmp[:,:,0], (height, width), interpolation = cv2.INTER_CUBIC)
+    fmap_img = (np.reshape(fmap_img_tmp, (height, width, 1))*255).astype(np.uint8)
 
     # overlay
     plt.imshow(sample_img)
-    plt.imshow(fmap_img, cmap="jet", alpha=0.5)
+    plt.imshow(fmap_img, cmap="jet", alpha=0.7)
     plt.axis('off')
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=True)
@@ -71,7 +75,7 @@ def get_sample_images(dataset, n):
     for index in indexes:
         sample, _ = dataset[index]
         ans.append(tensor_to_img(sample, normalize=True))
-    return ans  
+    return ans
 
 def main():
     with open("./docs/streamlit_instructions.md","r") as file:
@@ -104,11 +108,11 @@ def main():
     app_backbone = st.sidebar.selectbox("Choose a backbone",
         BACKBONES)
 
-    manualRange = st.sidebar.checkbox('Manually set color range', value=False) 
-    
+    manualRange = st.sidebar.checkbox('Manually set color range', value=False)
+
     if manualRange:
         app_color_min = st.sidebar.number_input("set color min ",-1000,1000, 0)
-        app_color_max = st.sidebar.number_input("set color max ",-1000,1000, 200)   
+        app_color_max = st.sidebar.number_input("set color max ",-1000,1000, 200)
         color_range = app_color_min, app_color_max
 
     app_start = st.sidebar.button("Start")
@@ -153,7 +157,7 @@ def main():
                     train_dataset, test_dataset = MVTecDataset(app_mvtec_dataset).get_datasets()
                     st.success(f"Loaded '{app_mvtec_dataset}' dataset.")
                     flag_data_ok = True
-            
+
             if not flag_data_ok:
                 st.stop()
         else:
@@ -186,19 +190,19 @@ def main():
                 )
             elif app_method == "PatchCore":
                 model = PatchCore(
-                    f_coreset=.01, 
+                    f_coreset=.01,
                     backbone_name=app_backbone,
                     coreset_eps=.95,
                 )
             st.success(f"Loaded {app_method} model.")
         else:
             model = st.session_state.model
-        
+
         # TRAINING
         # --------
 
         if not st.session_state.reached_test_phase:
-            with st_stdout("info", "Setting up training ..."):            
+            with st_stdout("info", "Setting up training ..."):
                 model.fit(DataLoader(train_dataset))
 
         # TESTING
@@ -210,13 +214,13 @@ def main():
             st.session_state.model = model
             st.session_state.train_dataset = train_dataset
             st.session_state.test_dataset = test_dataset
-        
+
         st.session_state.test_idx = st.number_input(
             "Test sample index",
             min_value = 0,
             max_value = len(test_dataset)-1,
         )
-        
+
         sample, *_ = test_dataset[st.session_state.test_idx]
         img_lvl_anom_score, pxl_lvl_anom_score = model.predict(sample.unsqueeze(0))
         score_range = pxl_lvl_anom_score.min(), pxl_lvl_anom_score.max()
