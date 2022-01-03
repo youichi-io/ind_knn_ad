@@ -17,10 +17,12 @@ This repo aims to reproduce the results of the following KNN-based anomaly detec
 
 ---
 
-## Install
+## Install(windows)
 
 ```shell
-$ pipenv install -r requirements.txt
+$ python -m venv venv
+$ .\venv\Scripts\activate
+$ pip install -r requirements.txt
 ```
 
 ## Usage
